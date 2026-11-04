@@ -1,0 +1,3 @@
+postgres_password = "CAMBIAR_POR_UNA_CLAVE_SEGURA"
+postgres_db       = "devops"
+backend_replicas  = 2
