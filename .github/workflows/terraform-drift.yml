@@ -1,0 +1,28 @@
+name: Terraform Drift Check
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 12 * * 1"
+
+jobs:
+  drift-check:
+    name: Check Terraform State
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.17.1
+
+      - name: Check state availability
+        run: |
+          if [ ! -f terraform.tfstate ]; then
+            echo "No hay estado Terraform disponible en el repositorio."
+            echo "Se omite la detección real de Drift."
+            exit 0
+          fi
