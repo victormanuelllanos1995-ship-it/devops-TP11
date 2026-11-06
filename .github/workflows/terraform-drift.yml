@@ -7,7 +7,7 @@ on:
 
 jobs:
   drift-check:
-    name: Check Terraform State
+    name: Check Terraform Drift
     runs-on: ubuntu-latest
 
     steps:
@@ -19,10 +19,10 @@ jobs:
         with:
           terraform_version: 1.17.1
 
-      - name: Check state availability
+      - name: Check Terraform state
         run: |
           if [ ! -f terraform.tfstate ]; then
-            echo "No hay estado Terraform disponible en el repositorio."
-            echo "Se omite la detección real de Drift."
-            exit 0
+            echo "::error::No hay terraform.tfstate disponible."
+            echo "No se puede realizar una detección real de Drift."
+            exit 1
           fi
