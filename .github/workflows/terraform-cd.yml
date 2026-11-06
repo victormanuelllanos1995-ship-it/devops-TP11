@@ -2,13 +2,13 @@ name: Terraform CD
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - main
+
+permissions:
+  contents: read
 
 jobs:
-  deploy-check:
-    name: Terraform Deployment Check
+  deploy:
+    name: Terraform Deployment
     runs-on: ubuntu-latest
 
     steps:
@@ -21,10 +21,17 @@ jobs:
           terraform_version: 1.17.1
 
       - name: Terraform Init
-        run: terraform init
+        run: terraform init -backend=false
 
       - name: Terraform Validate
         run: terraform validate
 
       - name: Terraform Plan
-        run: terraform plan -input=false -refresh=false -lock=false -var="postgres_password=validation-only"
+        run: |
+          terraform plan -input=false -refresh=false -lock=false \
+            -var="postgres_password=validation-only"
+
+      - name: Deployment limitation
+        run: |
+          echo "::warning::Apply real pendiente."
+          echo "Se necesita un backend de estado persistente y acceso al Docker host."
