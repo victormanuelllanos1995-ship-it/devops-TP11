@@ -4,3 +4,4 @@
 *.tfvars
 !terraform.tfvars.example
 crash.log
+respaldo-TP11.tar.gz
