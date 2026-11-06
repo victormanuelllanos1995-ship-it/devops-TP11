@@ -1,9 +1,8 @@
 #!/bin/bash
-set -e
+set -u
 
 if [ ! -f terraform.tfstate ]; then
   echo "ERROR: No se encontró terraform.tfstate."
-  echo "No se puede comprobar Drift sin el estado original."
   exit 1
 fi
 
@@ -12,13 +11,22 @@ if [ -z "${TF_VAR_postgres_password:-}" ]; then
   exit 1
 fi
 
+set +e
 terraform plan -detailed-exitcode -input=false
 resultado=$?
+set -e
 
-if [ "$resultado" -eq 0 ]; then
-  echo "Sin diferencias detectadas."
-elif [ "$resultado" -eq 2 ]; then
-  echo "Hay diferencias pendientes."
-fi
-
-exit "$resultado"
+case "$resultado" in
+  0)
+    echo "Sin diferencias detectadas."
+    exit 0
+    ;;
+  1)
+    echo "ERROR: Terraform plan falló."
+    exit 1
+    ;;
+  2)
+    echo "DRIFT DETECTADO: Hay diferencias pendientes."
+    exit 2
+    ;;
+esac
