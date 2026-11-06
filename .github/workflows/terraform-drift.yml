@@ -1,13 +1,16 @@
-name: Terraform Drift Check
+name: Terraform Drift Detection
 
 on:
   workflow_dispatch:
   schedule:
     - cron: "0 12 * * 1"
 
+permissions:
+  contents: read
+
 jobs:
   drift-check:
-    name: Check Terraform Drift
+    name: Detect Infrastructure Drift
     runs-on: ubuntu-latest
 
     steps:
@@ -19,10 +22,36 @@ jobs:
         with:
           terraform_version: 1.17.1
 
-      - name: Check Terraform state
+      - name: Check required secrets
+        env:
+          TF_VAR_postgres_password: ${{ secrets.POSTGRES_PASSWORD }}
         run: |
-          if [ ! -f terraform.tfstate ]; then
-            echo "::error::No hay terraform.tfstate disponible."
-            echo "No se puede realizar una detección real de Drift."
+          if [ -z "$TF_VAR_postgres_password" ]; then
+            echo "::error::Configure POSTGRES_PASSWORD in GitHub Secrets."
+            exit 1
+          fi
+
+      - name: Terraform Init
+        run: terraform init -input=false
+
+      - name: Terraform Validate
+        run: terraform validate
+
+      - name: Detect Drift
+        env:
+          TF_VAR_postgres_password: ${{ secrets.POSTGRES_PASSWORD }}
+        run: |
+          set +e
+          terraform plan -detailed-exitcode -input=false -no-color
+          result=$?
+          set -e
+
+          if [ "$result" -eq 0 ]; then
+            echo "No drift detected."
+          elif [ "$result" -eq 2 ]; then
+            echo "::error::Infrastructure drift detected."
+            exit 1
+          else
+            echo "::error::Terraform plan failed."
             exit 1
           fi
