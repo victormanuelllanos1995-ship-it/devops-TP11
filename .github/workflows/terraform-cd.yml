@@ -10,7 +10,6 @@ jobs:
   deploy:
     name: Terraform Deployment
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -20,18 +19,25 @@ jobs:
         with:
           terraform_version: 1.17.1
 
+      - name: Check required secret
+        env:
+          TF_VAR_postgres_password: ${{ secrets.POSTGRES_PASSWORD }}
+        run: |
+          if [ -z "$TF_VAR_postgres_password" ]; then
+            echo "::error::Configure POSTGRES_PASSWORD in GitHub Secrets."
+            exit 1
+          fi
+
       - name: Terraform Init
-        run: terraform init -backend=false
+        run: terraform init -input=false
 
       - name: Terraform Validate
         run: terraform validate
 
       - name: Terraform Plan
-        run: |
-          terraform plan -input=false -refresh=false -lock=false \
-            -var="postgres_password=validation-only"
+        env:
+          TF_VAR_postgres_password: ${{ secrets.POSTGRES_PASSWORD }}
+        run: terraform plan -input=false -no-color -out=tfplan
 
-      - name: Deployment limitation
-        run: |
-          echo "::warning::Apply real pendiente."
-          echo "Se necesita un backend de estado persistente y acceso al Docker host."
+      - name: Terraform Apply
+        run: terraform apply -input=false -auto-approve tfplan
